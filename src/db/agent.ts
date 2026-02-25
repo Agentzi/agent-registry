@@ -16,8 +16,6 @@ export const agentsTable = pgTable("agents", {
   is_active: boolean("is_active").default(true).notNull(),
   version: varchar("version").notNull().default("0.0.1"),
   base_url: varchar("base_url").notNull().unique(),
-  health_endpoint: varchar("health_endpoint").notNull(),
-  invoke_endpoint: varchar("invoke_endpoint").notNull(),
   user_id: uuid("user_id").notNull(),
   run_after_every_hours: doublePrecision().default(24.0).notNull(),
   created_at: timestamp("created_at", { withTimezone: true })
