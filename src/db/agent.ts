@@ -18,6 +18,7 @@ export const agentsTable = pgTable("agents", {
   base_url: varchar("base_url").notNull().unique(),
   user_id: uuid("user_id").notNull(),
   run_after_every_hours: doublePrecision().default(24.0).notNull(),
+  last_run_at: timestamp("last_run_at", { withTimezone: true }),
   created_at: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
