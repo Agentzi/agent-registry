@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import HttpStatus from "../utils/http-status";
 import db from "../config/db.config";
-import { eq } from "drizzle-orm";
-import { agentsTable, type InsertAgent } from "@agentzi/db";
+import { eq, ilike, desc } from "drizzle-orm";
+import { agentsTable, healthTable, type InsertAgent } from "@agentzi/db";
+import { invokeTable } from "../db/invoke";
 
 const AgentController = {
   /**
@@ -181,16 +182,7 @@ const AgentController = {
         .update(agentsTable)
         .set(updateData)
         .where(eq(agentsTable.id, id))
-        .returning({
-          id: agentsTable.id,
-          name: agentsTable.name,
-          desc: agentsTable.desc,
-          base_url: agentsTable.base_url,
-          run_after_every_hours: agentsTable.run_after_every_hours,
-          version: agentsTable.version,
-          created_at: agentsTable.created_at,
-          updated_at: agentsTable.updated_at,
-        });
+        .returning();
 
       if (!updatedAgent) {
         return res
@@ -206,6 +198,148 @@ const AgentController = {
           .json({ message: "Agent already exists" });
       }
 
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  /**
+   * @method GET
+   * @access /agent/dev/:id
+   * @description This method is used to get a particular agent with its developer id
+   */
+  getAgentByDevId: async (req: Request, res: Response) => {
+    const user_id = req.headers["x-user-id"] as string;
+
+    if (!user_id) {
+      return res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ message: "Invalid or expired token" });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ message: "Missing required fields" });
+    }
+
+    try {
+      const agents = await db
+        .select()
+        .from(agentsTable)
+        .where(eq(agentsTable.user_id, id as string));
+
+      return res.status(HttpStatus.OK).json(agents);
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  /**
+   * @method GET
+   * @access /agent/search?q=
+   * @description Search agents by username (partial match), returns all if q is empty
+   */
+  searchAgents: async (req: Request, res: Response) => {
+    const user_id = req.headers["x-user-id"] as string;
+
+    if (!user_id) {
+      return res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ message: "Invalid or expired token" });
+    }
+
+    const q = (req.query.q as string) || "";
+
+    try {
+      let agents;
+      if (q.trim()) {
+        agents = await db
+          .select()
+          .from(agentsTable)
+          .where(ilike(agentsTable.agent_username, `%${q.trim()}%`));
+      } else {
+        agents = await db.select().from(agentsTable);
+      }
+
+      return res.status(HttpStatus.OK).json(agents);
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  /**
+   * @method GET
+   * @access /agent/health-logs/:id
+   * @description This method is used to get the health logs of a particular agent
+   */
+  getHealthLogs: async (req: Request, res: Response) => {
+    const user_id = req.headers["x-user-id"] as string;
+
+    if (!user_id) {
+      return res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ message: "Invalid or expired token" });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ message: "Missing required fields" });
+    }
+
+    try {
+      const logs = await db
+        .select()
+        .from(healthTable)
+        .where(eq(healthTable.agent_id, id as string))
+        .orderBy(desc(healthTable.created_at));
+
+      return res.status(HttpStatus.OK).json(logs);
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  /**
+   * @method GET
+   * @access /agent/invoke-logs/:id
+   * @description This method is used to get the invoke logs of a particular agent
+   */
+  getInvokeLogs: async (req: Request, res: Response) => {
+    const user_id = req.headers["x-user-id"] as string;
+
+    if (!user_id) {
+      return res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ message: "Invalid or expired token" });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ message: "Missing required fields" });
+    }
+
+    try {
+      const logs = await db
+        .select()
+        .from(invokeTable)
+        .where(eq(invokeTable.agent_id, id as string))
+        .orderBy(desc(invokeTable.created_at));
+
+      return res.status(HttpStatus.OK).json(logs);
+    } catch (error) {
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });
