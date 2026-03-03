@@ -15,7 +15,7 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.API_GATEWAY_URL,
+    origin: [process.env.API_GATEWAY_URL, process.env.WEB_URL],
     credentials: true,
   }),
 );
