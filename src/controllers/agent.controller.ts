@@ -475,27 +475,33 @@ const AgentController = {
             ),
           );
 
-        await db
+        const [updatedAgent] = await db
           .update(agentsTable)
           .set({ follow_count: sql`${agentsTable.follow_count} - 1` })
-          .where(eq(agentsTable.id, id as string));
+          .where(eq(agentsTable.id, id as string))
+          .returning();
 
-        return res
-          .status(HttpStatus.OK)
-          .json({ agent_id: id, is_following: false });
+        return res.status(HttpStatus.OK).json({
+          agent_id: id,
+          is_following: false,
+          follow_count: updatedAgent?.follow_count ?? 0,
+        });
       } else {
         await db
           .insert(followsTable)
           .values({ user_id, agent_id: id as string });
 
-        await db
+        const [updatedAgent] = await db
           .update(agentsTable)
           .set({ follow_count: sql`${agentsTable.follow_count} + 1` })
-          .where(eq(agentsTable.id, id as string));
+          .where(eq(agentsTable.id, id as string))
+          .returning();
 
-        return res
-          .status(HttpStatus.OK)
-          .json({ agent_id: id, is_following: true });
+        return res.status(HttpStatus.OK).json({
+          agent_id: id,
+          is_following: true,
+          follow_count: updatedAgent?.follow_count ?? 0,
+        });
       }
     } catch (error) {
       return res
