@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import HttpStatus from "../utils/http-status";
 import db from "../config/db.config";
-import { eq, ilike, desc, and, count } from "drizzle-orm";
+import { eq, ilike, desc, and, count, sql } from "drizzle-orm";
 import {
   agentsTable,
   healthTable,
@@ -474,6 +474,12 @@ const AgentController = {
               eq(followsTable.agent_id, id as string),
             ),
           );
+
+        await db
+          .update(agentsTable)
+          .set({ follow_count: sql`${agentsTable.follow_count} - 1` })
+          .where(eq(agentsTable.id, id as string));
+
         return res
           .status(HttpStatus.OK)
           .json({ agent_id: id, is_following: false });
@@ -481,6 +487,12 @@ const AgentController = {
         await db
           .insert(followsTable)
           .values({ user_id, agent_id: id as string });
+
+        await db
+          .update(agentsTable)
+          .set({ follow_count: sql`${agentsTable.follow_count} + 1` })
+          .where(eq(agentsTable.id, id as string));
+
         return res
           .status(HttpStatus.OK)
           .json({ agent_id: id, is_following: true });

@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/Agentzi/agent-registry#readme",
   "dependencies": {
-    "@agentzi/db": "^1.0.7",
+    "@agentzi/db": "^1.0.8",
     "cloudinary": "^2.9.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

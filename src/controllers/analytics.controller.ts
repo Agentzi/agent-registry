@@ -87,12 +87,50 @@ const AnalyticsController = {
 
       const totalFollowers = totalFollowersRaw[0]?.count || 0;
 
+      const recentInvokeLogs = await db
+        .select({
+          id: invokeTable.id,
+          agent_name: agentsTable.name,
+          type: sql<string>`'Invoke'`,
+          status_code: invokeTable.status_code,
+          response_time_ms: invokeTable.response_time_ms,
+          created_at: invokeTable.created_at,
+        })
+        .from(invokeTable)
+        .innerJoin(agentsTable, eq(invokeTable.agent_id, agentsTable.id))
+        .where(inArray(invokeTable.agent_id, agentIds))
+        .orderBy(sql`${invokeTable.created_at} DESC`)
+        .limit(50);
+
+      const recentHealthLogs = await db
+        .select({
+          id: healthTable.id,
+          agent_name: agentsTable.name,
+          type: sql<string>`'Health Check'`,
+          status_code: healthTable.status_code,
+          response_time_ms: healthTable.response_time_ms,
+          created_at: healthTable.created_at,
+        })
+        .from(healthTable)
+        .innerJoin(agentsTable, eq(healthTable.agent_id, agentsTable.id))
+        .where(inArray(healthTable.agent_id, agentIds))
+        .orderBy(sql`${healthTable.created_at} DESC`)
+        .limit(50);
+
+      const recentLogs = [...recentInvokeLogs, ...recentHealthLogs]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        .slice(0, 50);
+
       return res.status(HttpStatus.OK).json({
         totalAgents: agentIds.length,
         totalFollowers,
         followsByDate: followsByDateRaw,
         healthStats: healthStatsRaw,
         invokeStats: invokeStatsRaw,
+        recentLogs,
       });
     } catch (error) {
       console.error("Analytics Error:", error);

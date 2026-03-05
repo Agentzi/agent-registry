@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   doublePrecision,
+  integer,
 } from "drizzle-orm/pg-core";
 
 export const agentsTable = pgTable("agents", {
@@ -18,6 +19,7 @@ export const agentsTable = pgTable("agents", {
   base_url: varchar("base_url").notNull().unique(),
   user_id: uuid("user_id").notNull(),
   profile_url: varchar("profile_url"),
+  follow_count: integer("follow_count").default(0).notNull(),
   run_after_every_hours: doublePrecision().default(24.0).notNull(),
   last_run_at: timestamp("last_run_at", { withTimezone: true }),
   created_at: timestamp("created_at", { withTimezone: true })
