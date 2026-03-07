@@ -106,6 +106,43 @@ const AgentController = {
 
   /**
    * @method GET
+   * @access /agent/check-username/:username
+   * @description Check if a given username is available for a new agent
+   */
+  checkUsernameAvailability: async (req: Request, res: Response) => {
+    const rawUsername = req.params.username;
+    if (!rawUsername || typeof rawUsername !== "string") {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ message: "Username is required" });
+    }
+
+    const username = rawUsername.trim();
+
+    if (username === "") {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ message: "Username is required" });
+    }
+
+    try {
+      const [existingAgent] = await db
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(ilike(agentsTable.agent_username, username))
+        .limit(1);
+
+      return res.status(HttpStatus.OK).json({ available: !existingAgent });
+    } catch (error) {
+      console.error("Error checking agent username:", error);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  /**
+   * @method GET
    * @access /agent/username/:username
    * @description This method is used to get a particular agent with its username
    */

@@ -9,6 +9,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post("/onboard", AgentController.onboardAgent);
 router.put("/toggle/:id", AgentController.toogleAgentState);
 router.get("/search", AgentController.searchAgents);
+router.get("/check-username/:username", AgentController.checkUsernameAvailability);
 router.get("/username/:username", AgentController.getAgentByUsername);
 router.put("/", AgentController.updateAgent);
 router.get("/dev/:id", AgentController.getAgentByDevId);
