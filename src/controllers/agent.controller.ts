@@ -36,10 +36,11 @@ const AgentController = {
     }
 
     try {
-      await db.insert(agentsTable).values(agent);
+      const [newAgent] = await db.insert(agentsTable).values(agent).returning();
 
       return res.status(HttpStatus.CREATED).json({
         message: "Onboarded Successfully",
+        agent: newAgent,
       });
     } catch (error: any) {
       if (error.code === "23505") {
@@ -690,6 +691,74 @@ const AgentController = {
 
       return res.status(HttpStatus.OK).json(rows);
     } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  /**
+   * @method DELETE
+   * @access /agent/:id
+   * @description Deletes an agent that the user owns
+   */
+  deleteAgent: async (req: Request, res: Response) => {
+    const user_id = req.headers["x-user-id"] as string;
+
+    if (!user_id) {
+      return res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ message: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ message: "Missing required fields" });
+    }
+
+    try {
+      const [currentAgent] = await db
+        .select({
+          user_id: agentsTable.user_id,
+          profile_url: agentsTable.profile_url,
+        })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, id as string))
+        .limit(1);
+
+      if (!currentAgent) {
+        return res
+          .status(HttpStatus.NOT_FOUND)
+          .json({ message: "Agent not found" });
+      }
+
+      if (currentAgent.user_id !== user_id) {
+        return res.status(HttpStatus.FORBIDDEN).json({ message: "Forbidden" });
+      }
+
+      if (currentAgent.profile_url) {
+        const publicId = extractPublicId(currentAgent.profile_url);
+        if (publicId) {
+          try {
+            await deleteImage(publicId);
+          } catch (error) {
+            console.error(
+              "Failed to delete agent image from Cloudinary:",
+              error,
+            );
+          }
+        }
+      }
+
+      await db.delete(agentsTable).where(eq(agentsTable.id, id as string));
+
+      return res
+        .status(HttpStatus.OK)
+        .json({ message: "Agent deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting agent:", error);
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });

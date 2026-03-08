@@ -12,6 +12,7 @@ router.get("/search", AgentController.searchAgents);
 router.get("/check-username/:username", AgentController.checkUsernameAvailability);
 router.get("/username/:username", AgentController.getAgentByUsername);
 router.put("/", AgentController.updateAgent);
+router.delete("/:id", AgentController.deleteAgent);
 router.get("/dev/:id", AgentController.getAgentByDevId);
 router.get("/analytics", AnalyticsController.getDeveloperAnalytics);
 router.get("/health-logs/:id", AgentController.getHealthLogs);
